@@ -1,5 +1,5 @@
 #!/bin/bash
-
+set -x
 set -o pipefail
 
 # initialization
@@ -539,6 +539,7 @@ filter_tags() {
 
 # query the source registry for a list of all images
 query_source_images() {
+  set -x
   echo -e "\n${INFO} Getting a list of images from ${V1_REGISTRY}"
   # check to see if migrating from docker hub or a v1 registry
   if [ "${DOCKER_HUB}" = "true" ]
@@ -608,10 +609,12 @@ query_source_images() {
 
       # retrieve a list of tags at the target repository
       TAGS_AT_TARGET=$(query_tags_to_skip ${NAMESPACE}/${i})
-
+      
+      count=0
       # loop through each page of tags
       while [ "${PAGE_URL}" != "null" ]
       do
+        count=$count+1
         # get a list of tags on this page
         PAGE_DATA=$(curl ${INSECURE_CURL} -sf -H "Authorization: JWT ${TOKEN}" "${PAGE_URL}") || catch_error "curl => API failure getting tag list"
 
@@ -620,6 +623,8 @@ query_source_images() {
 
         # Add tags to the list
         IMAGE_TAGS="${IMAGE_TAGS} $(echo ${PAGE_DATA} | jq -r '.results|.[]|.name')"
+        echo "count=$count"
+        break
       done
 
       # build a list of images from tags
